@@ -119,6 +119,18 @@ jobs:
           set -e
           node scripts/build-snapshot-013.mjs "${{ matrix.abi }}"
 
+      # fork 补丁（上游 build-apk.yml 缺此步，见下）：build-apk.mjs:236 无条件跑
+      # check-kotlin-test-count.mjs，而该门禁要求 app/build/test-results/testDebugUnitTest 在场且新鲜。
+      # 上游 release.yml:217-219 有对应的 testDebugUnitTest 步骤，build-apk.yml 没有 —— 于是云端
+      # build-apk 链恒在门禁处判红（build-apk.mjs:234 的注释写的「云端不跑本门禁」与代码不符）。
+      # 本步只补上缺失的产结果环节，不改任何门禁判据。
+      - name: Kotlin 单测（为 check-kotlin-test-count 产结果）
+        shell: bash
+        run: |
+          set -e
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest --no-daemon --console=plain
+
       - name: 构建 APK ${abi}（注入插件 + 门禁 + gradle + 产物）
         shell: bash
         run: |
